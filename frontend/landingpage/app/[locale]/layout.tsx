@@ -18,6 +18,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
 import { ThemeProvider } from "next-themes";
 import { notFound } from "next/navigation";
+import ConditionalLayout from "@/components/ConditionalLayout";
 
 type MetadataProps = {
   params: Promise<{ locale: string }>;
@@ -75,14 +76,13 @@ export default async function LocaleLayout({
             defaultTheme={siteConfig.defaultNextTheme}
             enableSystem
           >
-            {messages.LanguageDetection && <LanguageDetectionAlert />}
-            {messages.Header && <Header />}
-
-            <main className="flex-1 flex flex-col items-center">
+            <ConditionalLayout 
+              messages={messages}
+              header={<Header />}
+              footer={<Footer />}
+            >
               {children}
-            </main>
-
-            {messages.Footer && <Footer />}
+            </ConditionalLayout>
           </ThemeProvider>
         </NextIntlClientProvider>
         <TailwindIndicator />

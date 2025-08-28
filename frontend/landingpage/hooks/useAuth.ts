@@ -13,6 +13,7 @@ export function useAuth() {
     // 获取当前用户
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
+      debugger
       setUser(user)
       setLoading(false)
     }
