@@ -47,10 +47,11 @@ function MainLayoutContent({
         onLogout={signOut}
         onNavItemClick={handleNavItemClick}
       >
-        <WalletProvider>
+        {/* <WalletProvider>
           <WalletHeader></WalletHeader>
           {children}
-        </WalletProvider>
+        </WalletProvider> */}
+        {children}
       </AppSidebarLayout>
     </Providers>
   )

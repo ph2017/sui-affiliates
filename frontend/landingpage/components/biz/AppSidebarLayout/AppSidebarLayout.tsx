@@ -18,7 +18,7 @@ import {
 import { NavMain } from "./components/NavMain"
 import { NavUser } from "./components/NavUser"
 import type { AppSidebarLayoutProps } from "./interface"
-// import { Logo } from "@/components/biz/Logo"
+import { Logo } from "@/components/biz/Logo"
 
 export function AppSidebarLayout({
   navMain,
@@ -37,11 +37,11 @@ export function AppSidebarLayout({
               <SidebarMenuButton size="lg" asChild>
                 <Link href="/home">
                   <div className="flex aspect-square size-10 items-center justify-start rounded-lg text-sidebar-primary-foreground">
-                    {/* <Logo
+                    <Logo
                       width={30}
                       height={30}
                       className="sm:w-[50px] sm:h-[50px] text-purple-500 "
-                    /> */}
+                    />
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <div className="truncate font-semibold inline-block bg-clip-text">

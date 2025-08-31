@@ -8,6 +8,11 @@ export const routes = [
     title: "Dashboard",
     url: "/main/dashboard",
     icon: SquareTerminal,
+  },
+  {
+    title: "MyProjects",
+    url: "/main/my-projects",
+    icon: PanelsTopLeft,
   }
 ]
 

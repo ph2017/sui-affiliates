@@ -19,6 +19,7 @@ import { getMessages, getTranslations } from "next-intl/server";
 import { ThemeProvider } from "next-themes";
 import { notFound } from "next/navigation";
 import ConditionalLayout from "@/components/ConditionalLayout";
+import { AntdConfigProvider } from "@/components/provider/antd-config-provider";
 
 type MetadataProps = {
   params: Promise<{ locale: string }>;
@@ -76,13 +77,15 @@ export default async function LocaleLayout({
             defaultTheme={siteConfig.defaultNextTheme}
             enableSystem
           >
-            <ConditionalLayout 
-              messages={messages}
-              header={<Header />}
-              footer={<Footer />}
-            >
-              {children}
-            </ConditionalLayout>
+            <AntdConfigProvider>
+              <ConditionalLayout 
+                messages={messages}
+                header={<Header />}
+                footer={<Footer />}
+              >
+                {children}
+              </ConditionalLayout>
+            </AntdConfigProvider>
           </ThemeProvider>
         </NextIntlClientProvider>
         <TailwindIndicator />
