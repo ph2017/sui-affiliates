@@ -1,72 +1,78 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Table, Input, DatePicker, Button, Space, Card, Typography, Tag } from 'antd'
-import { SearchOutlined, ReloadOutlined, PlusOutlined, SunOutlined, MoonOutlined } from '@ant-design/icons'
+import { Table, Input, DatePicker, Button, Space, Card, Typography, Tag, message } from 'antd'
+import { SearchOutlined, ReloadOutlined, PlusOutlined } from '@ant-design/icons'
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table'
 import type { FilterValue, SorterResult } from 'antd/es/table/interface'
 import dayjs, { Dayjs } from 'dayjs'
 import { useTheme } from 'next-themes'
 import { AppHeader } from '@/components/biz/AppHeader/AppHeader'
+import { Project } from '@/lib/supabase/project/types'
 
 const { Title } = Typography
 const { RangePicker } = DatePicker
 
-// 项目数据类型定义
+// 项目数据类型定义（基于Supabase Project类型）
 interface ProjectData {
   key: string
   id: string
   name: string
-  description: string
-  status: 'active' | 'inactive' | 'completed' | 'pending'
-  createTime: string
-  updateTime: string
-  creator: string
-  participants: number
+  resources: string[]
+  startDate: string
+  endDate: string
+  affiliatesUsers: string[]
+  usdcBalance: number
+  contractId: string
+  createdAt: string
+  updatedAt: string
+  createdBy: string
 }
 
-// 模拟项目数据
-const generateMockData = (): ProjectData[] => {
-  const statuses: ProjectData['status'][] = ['active', 'inactive', 'completed', 'pending']
-  const projects: ProjectData[] = []
+// API响应类型
+interface ApiResponse {
+  success: boolean
+  data?: {
+    data: Project[]
+    total: number
+    page: number
+    pageSize: number
+    totalPages: number
+  }
+  error?: string
+}
+
+// 将Supabase Project转换为表格数据
+const transformProjectData = (projects: any[]): ProjectData[] => {
+  return projects.map(project => ({
+    key: project.id,
+    id: project.id,
+    name: project.name,
+    resources: project.resources,
+    startDate: project.start_date,
+    endDate: project.end_date,
+    affiliatesUsers: project.affiliates_users,
+    usdcBalance: project.usdc_balance,
+    contractId: project.contract_id,
+    createdAt: project.created_at,
+    updatedAt: project.updated_at,
+    createdBy: project.created_by
+  }))
+}
+
+// 获取项目状态（基于日期）
+const getProjectStatus = (startDate: string, endDate: string) => {
+  const now = dayjs()
+  const start = dayjs(startDate)
+  const end = dayjs(endDate)
   
-  for (let i = 1; i <= 50; i++) {
-    projects.push({
-      key: `project-${i}`,
-      id: `PRJ-${String(i).padStart(4, '0')}`,
-      name: `项目 ${i}`,
-      description: `这是第 ${i} 个项目的描述信息`,
-      status: statuses[Math.floor(Math.random() * statuses.length)],
-      createTime: dayjs().subtract(Math.floor(Math.random() * 365), 'day').format('YYYY-MM-DD HH:mm:ss'),
-      updateTime: dayjs().subtract(Math.floor(Math.random() * 30), 'day').format('YYYY-MM-DD HH:mm:ss'),
-      creator: `用户${i}`,
-      participants: Math.floor(Math.random() * 20) + 1
-    })
+  if (now.isBefore(start)) {
+    return { status: 'pending', text: '待开始', color: 'orange' }
+  } else if (now.isAfter(end)) {
+    return { status: 'completed', text: '已完成', color: 'blue' }
+  } else {
+    return { status: 'active', text: '进行中', color: 'green' }
   }
-  
-  return projects
-}
-
-// 状态标签颜色映射
-const getStatusColor = (status: ProjectData['status']) => {
-  const colorMap = {
-    active: 'green',
-    inactive: 'red',
-    completed: 'blue',
-    pending: 'orange'
-  }
-  return colorMap[status]
-}
-
-// 状态文本映射
-const getStatusText = (status: ProjectData['status']) => {
-  const textMap = {
-    active: '进行中',
-    inactive: '已停用',
-    completed: '已完成',
-    pending: '待开始'
-  }
-  return textMap[status]
 }
 
 export default function MyProjectsPage() {
@@ -86,54 +92,58 @@ export default function MyProjectsPage() {
 
   // 初始化数据
   useEffect(() => {
-    loadData()
+    loadData(1, 10)
   }, [])
 
   // 加载数据
-  const loadData = () => {
+  const loadData = async (page = 1, pageSize = 10) => {
     setLoading(true)
-    // 模拟API调用
-    setTimeout(() => {
-      const mockData = generateMockData()
-      setData(mockData)
-      setPagination(prev => ({
-        ...prev,
-        total: mockData.length
-      }))
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+        sortBy: 'createdAt',
+        sortOrder: 'desc'
+      })
+      
+      // 添加搜索条件
+      if (searchText) {
+        params.append('name', searchText)
+      }
+      
+      if (dateRange && dateRange[0] && dateRange[1]) {
+        params.append('startDate', dateRange[0].format('YYYY-MM-DD'))
+        params.append('endDate', dateRange[1].format('YYYY-MM-DD'))
+      }
+      
+      const response = await fetch(`/api/projects?${params.toString()}`)
+      const result: ApiResponse = await response.json()
+      
+      if (result.success && result.data) {
+        const transformedData = transformProjectData(result.data.data)
+        setData(transformedData)
+        setPagination(prev => ({
+          ...prev,
+          current: result.data!.page,
+          total: result.data!.total,
+          pageSize: result.data!.pageSize
+        }))
+      } else {
+        message.error(result.error || '加载项目数据失败')
+        setData([])
+      }
+    } catch (error) {
+      console.error('加载数据失败:', error)
+      message.error('网络请求失败，请稍后重试')
+      setData([])
+    } finally {
       setLoading(false)
-    }, 500)
+    }
   }
 
   // 搜索功能
   const handleSearch = () => {
-    setLoading(true)
-    setTimeout(() => {
-      let filteredData = generateMockData()
-      
-      // 按项目名称搜索
-      if (searchText) {
-        filteredData = filteredData.filter(item => 
-          item.name.toLowerCase().includes(searchText.toLowerCase()) ||
-          item.id.toLowerCase().includes(searchText.toLowerCase())
-        )
-      }
-      
-      // 按创建时间范围搜索
-      if (dateRange && dateRange[0] && dateRange[1]) {
-        filteredData = filteredData.filter(item => {
-          const createTime = dayjs(item.createTime)
-          return createTime.isAfter(dateRange[0]) && createTime.isBefore(dateRange[1])
-        })
-      }
-      
-      setData(filteredData)
-      setPagination(prev => ({
-        ...prev,
-        current: 1,
-        total: filteredData.length
-      }))
-      setLoading(false)
-    }, 300)
+    loadData(1, pagination.pageSize)
   }
 
   // 重置搜索
@@ -150,7 +160,10 @@ export default function MyProjectsPage() {
       dataIndex: 'id',
       key: 'id',
       width: 120,
-      fixed: 'left'
+      fixed: 'left',
+      render: (id: string) => (
+        <span className="font-mono text-xs">{id.slice(0, 8)}...</span>
+      )
     },
     {
       title: '项目名称',
@@ -160,56 +173,78 @@ export default function MyProjectsPage() {
       ellipsis: true
     },
     {
-      title: '项目描述',
-      dataIndex: 'description',
-      key: 'description',
-      width: 250,
-      ellipsis: true
+      title: '合同ID',
+      dataIndex: 'contractId',
+      key: 'contractId',
+      width: 150,
+      ellipsis: true,
+      render: (contractId: string) => (
+        <span className="font-mono text-xs">{contractId}</span>
+      )
     },
     {
       title: '状态',
-      dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (status: ProjectData['status']) => (
-        <Tag color={getStatusColor(status)}>
-          {getStatusText(status)}
-        </Tag>
-      ),
+      render: (_, record) => {
+        const statusInfo = getProjectStatus(record.startDate, record.endDate)
+        return (
+          <Tag color={statusInfo.color}>
+            {statusInfo.text}
+          </Tag>
+        )
+      },
       filters: [
         { text: '进行中', value: 'active' },
-        { text: '已停用', value: 'inactive' },
         { text: '已完成', value: 'completed' },
         { text: '待开始', value: 'pending' }
       ],
-      onFilter: (value, record) => record.status === value
+      onFilter: (value, record) => {
+        const statusInfo = getProjectStatus(record.startDate, record.endDate)
+        return statusInfo.status === value
+      }
     },
     {
-      title: '创建时间',
-      dataIndex: 'createTime',
-      key: 'createTime',
+      title: 'USDC余额',
+      dataIndex: 'usdcBalance',
+      key: 'usdcBalance',
+      width: 120,
+      render: (balance: number) => (
+        <span className="font-mono">{balance.toFixed(2)} USDC</span>
+      ),
+      sorter: (a, b) => a.usdcBalance - b.usdcBalance
+    },
+    {
+      title: '开始时间',
+      dataIndex: 'startDate',
+      key: 'startDate',
       width: 180,
-      sorter: (a, b) => dayjs(a.createTime).unix() - dayjs(b.createTime).unix()
+      render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
+      sorter: (a, b) => dayjs(a.startDate).unix() - dayjs(b.startDate).unix()
     },
     {
-      title: '更新时间',
-      dataIndex: 'updateTime',
-      key: 'updateTime',
+      title: '结束时间',
+      dataIndex: 'endDate',
+      key: 'endDate',
       width: 180,
-      sorter: (a, b) => dayjs(a.updateTime).unix() - dayjs(b.updateTime).unix()
-    },
-    {
-      title: '创建者',
-      dataIndex: 'creator',
-      key: 'creator',
-      width: 120
+      render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
+      sorter: (a, b) => dayjs(a.endDate).unix() - dayjs(b.endDate).unix()
     },
     {
       title: '参与人数',
-      dataIndex: 'participants',
-      key: 'participants',
+      dataIndex: 'affiliatesUsers',
+      key: 'affiliatesUsers',
       width: 100,
-      sorter: (a, b) => a.participants - b.participants
+      render: (users: string[]) => users.length,
+      sorter: (a, b) => a.affiliatesUsers.length - b.affiliatesUsers.length
+    },
+    {
+      title: '创建时间',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      width: 180,
+      render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
+      sorter: (a, b) => dayjs(a.createdAt).unix() - dayjs(b.createdAt).unix()
     },
     {
       title: '操作',
@@ -238,7 +273,8 @@ export default function MyProjectsPage() {
     filters: Record<string, FilterValue | null>,
     sorter: SorterResult<ProjectData> | SorterResult<ProjectData>[]
   ) => {
-    setPagination(paginationConfig)
+    const { current = 1, pageSize = 10 } = paginationConfig
+    loadData(current, pageSize)
   }
 
   return (

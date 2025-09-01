@@ -50,7 +50,7 @@ export interface ProjectFilters {
 export interface PaginationParams {
   page?: number
   pageSize?: number
-  sortBy?: keyof Project
+  sortBy?: string // 支持数据库字段名（snake_case）和前端字段名（camelCase）
   sortOrder?: 'asc' | 'desc'
 }
 

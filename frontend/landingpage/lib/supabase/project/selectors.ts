@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { Project, ProjectFilters, PaginationParams, ProjectsResponse, ApiResponse } from '../types'
+import { Project, ProjectFilters, PaginationParams, ProjectsResponse, ApiResponse } from './types'
 
 // 获取 Supabase 客户端
 const getSupabaseClient = () => {
@@ -62,7 +62,7 @@ export async function getProjects(
     const {
       page = 1,
       pageSize = 10,
-      sortBy = 'createdAt',
+      sortBy = 'created_at',
       sortOrder = 'desc'
     } = pagination
 
@@ -75,23 +75,23 @@ export async function getProjects(
     }
 
     if (filters.startDate) {
-      query = query.gte('startDate', filters.startDate)
+      query = query.gte('start_date', filters.startDate)
     }
 
     if (filters.endDate) {
-      query = query.lte('endDate', filters.endDate)
+      query = query.lte('end_date', filters.endDate)
     }
 
     if (filters.createdBy || userId) {
-      query = query.eq('createdBy', filters.createdBy || userId)
+      query = query.eq('created_by', filters.createdBy || userId)
     }
 
     if (filters.usdcBalanceMin !== undefined) {
-      query = query.gte('usdcBalance', filters.usdcBalanceMin)
+      query = query.gte('usdc_balance', filters.usdcBalanceMin)
     }
 
     if (filters.usdcBalanceMax !== undefined) {
-      query = query.lte('usdcBalance', filters.usdcBalanceMax)
+      query = query.lte('usdc_balance', filters.usdcBalanceMax)
     }
 
     // 应用排序
